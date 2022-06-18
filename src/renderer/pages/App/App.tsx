@@ -1,26 +1,22 @@
 import React from "react";
 import classNames from "classnames";
-import Container from "../../flux/Container";
 import GlobalMenu from "../../components/GlobalMenu";
-import { store, AppState } from "./AppStore";
+import { store } from "./AppStore";
 import Action from "./AppAction";
 import Query from "../Query";
 import DataSource from "../DataSource";
 import Setting from "../Setting";
+import { useFluxState } from "../../flux/useFluxState";
 
-class App extends React.Component<unknown, AppState> {
-  override componentDidMount(): void {
+const App: React.FC = () => {
+  const state = useFluxState(store);
+
+  React.useEffect(() => {
     Action.initialize();
-  }
+  }, []);
 
-  override componentDidCatch(error, info) {
-    console.error(error);
-    console.error(info);
-    window.alert("An unexpected error has occurred 🥲")
-  }
-
-  getSelectedPage(): typeof Query | typeof DataSource | typeof Setting {
-    switch (this.state.selectedPage) {
+  const getSelectedPage = () => {
+    switch (state.selectedPage) {
       case "query":
         return Query;
       case "dataSource":
@@ -28,24 +24,26 @@ class App extends React.Component<unknown, AppState> {
       case "setting":
         return Setting;
       default:
-        throw new Error(`Unknown page: ${this.state.selectedPage}`);
+        throw new Error(`Unknown page: ${state.selectedPage}`);
     }
-  }
+  };
 
-  override render(): React.ReactNode {
-    const Page = this.getSelectedPage();
+  const render = () => {
+    const Page = getSelectedPage();
 
     return (
       <div className="page-app">
         <div className={classNames("page-app-menu", { darwin: process.platform === "darwin" })}>
-          <GlobalMenu selectedPage={this.state.selectedPage} onSelect={Action.selectPage} />
+          <GlobalMenu selectedPage={state.selectedPage} onSelect={Action.selectPage} />
         </div>
         <div className="page-app-main">
           <Page />
         </div>
-      </div >
+      </div>
     );
-  }
-}
+  };
 
-export default Container.create(App, store);
+  return render();
+};
+
+export default App;

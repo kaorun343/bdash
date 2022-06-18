@@ -8,7 +8,7 @@ export default class AppStore extends Store<AppState> {
   constructor() {
     super();
     this.state = {
-      selectedPage: "query"
+      selectedPage: "query",
     };
   }
 
@@ -24,5 +24,5 @@ export default class AppStore extends Store<AppState> {
   }
 }
 
-const { store, dispatch } = Store.create(AppStore);
+const { store, dispatch } = Store.create<AppState>(AppStore);
 export { store, dispatch };
