@@ -1,31 +1,33 @@
 import React from "react";
 import Select, { OptionTypeBase } from "react-select";
-import Container from "../../flux/Container";
-import { store, SettingState } from "./SettingStore";
+import { useFluxState } from "../../flux/useFluxState";
+import { store } from "./SettingStore";
 import Action from "./SettingAction";
 import Button from "../../components/Button";
 import ProgressIcon from "../../components/ProgressIcon";
 import { selectStyles } from "../../components/Select";
 import { indentValues } from "../../../lib/Setting";
 
-class Setting extends React.Component<unknown, SettingState> {
-  override componentDidMount(): void {
+const Setting: React.FC = () => {
+  const state = useFluxState(store);
+
+  React.useEffect(() => {
     Action.initialize();
-  }
+  }, []);
 
-  renderGithubValidateTokenResult(): React.ReactNode {
-    const { status, error } = this.state.githubValidateToken;
+  const renderGithubValidateTokenResult = () => {
+    const { status, error } = state.githubValidateToken;
     return status === null ? null : <ProgressIcon status={status} message={error} />;
-  }
+  };
 
-  renderBdashServerValidateTokenResult(): React.ReactNode {
-    const { status, error } = this.state.bdashServerValidateToken;
+  const renderBdashServerValidateTokenResult = () => {
+    const { status, error } = state.bdashServerValidateToken;
     return status === null ? null : <ProgressIcon status={status} message={error} />;
-  }
+  };
 
-  override render(): React.ReactNode {
+  const render = () => {
     const keyBindOptions: { value: string; label: string }[] = ["default", "vim"].map((v) => ({ value: v, label: v }));
-    const setting = this.state.setting;
+    const setting = state.setting;
     const currentOption = keyBindOptions.find((option) => option.value === (setting.keyBind || "default"));
     const github = setting.github || {};
     const bdashServer = setting.bdashServer || {};
@@ -113,7 +115,7 @@ class Setting extends React.Component<unknown, SettingState> {
             >
               Validate Token
             </Button>
-            {this.renderGithubValidateTokenResult()}
+            {renderGithubValidateTokenResult()}
           </div>
           <div className="page-Setting-section2 page-Setting-public">
             <h2>Share on gist in public</h2>
@@ -161,7 +163,7 @@ class Setting extends React.Component<unknown, SettingState> {
             >
               Validate Token
             </Button>
-            {this.renderBdashServerValidateTokenResult()}
+            {renderBdashServerValidateTokenResult()}
           </div>
           <div className="page-Setting-section2">
             <h2>Maximum number of rows</h2>
@@ -191,7 +193,9 @@ class Setting extends React.Component<unknown, SettingState> {
         </div>
       </div>
     );
-  }
-}
+  };
 
-export default Container.create<SettingState>(Setting, store);
+  return render();
+};
+
+export default Setting;
