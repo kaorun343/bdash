@@ -2,9 +2,9 @@ import electron from "electron";
 import React from "react";
 import SplitterLayout from "react-splitter-layout";
 import QuerySharing from "../../../lib/QuerySharing";
-import { store, QueryState } from "./QueryStore";
+import { store } from "./QueryStore";
 import Action from "./QueryAction";
-import Container from "../../flux/Container";
+import { useFluxState } from "../../flux/useFluxState";
 import QueryList from "../../components/QueryList";
 import QueryHeader from "../../components/QueryHeader";
 import QueryEditor from "../../components/QueryEditor";
@@ -13,45 +13,47 @@ import { QueryType } from "../../../lib/Database/Query";
 import { DataSourceType } from "../DataSource/DataSourceStore";
 import DataSource from "../../../lib/DataSource";
 
-class Query extends React.Component<unknown, QueryState> {
-  override componentDidMount(): void {
-    Action.initialize();
-  }
+const Query: React.FC = () => {
+  const state = useFluxState(store);
 
-  handleAddQuery(): void {
-    const defaultDataSourceId = this.state.setting.defaultDataSourceId;
-    const ds = defaultDataSourceId !== null ? this.findDataSourceById(defaultDataSourceId) : this.state.dataSources[0];
+  React.useEffect(() => {
+    Action.initialize();
+  }, []);
+
+  const handleAddQuery = (): void => {
+    const defaultDataSourceId = state.setting.defaultDataSourceId;
+    const ds = defaultDataSourceId !== null ? findDataSourceById(defaultDataSourceId) : state.dataSources[0];
     if (ds) {
       Action.addNewQuery({ dataSourceId: ds.id });
     } else {
       alert("Please create data source");
     }
-  }
+  };
 
-  findDataSourceById(id: number): DataSourceType | undefined {
-    return this.state.dataSources.find((ds) => ds.id === id);
-  }
+  const findDataSourceById = (id: number): DataSourceType | undefined => {
+    return state.dataSources.find((ds) => ds.id === id);
+  };
 
-  async handleExecute(query: QueryType): Promise<void> {
-    const line = this.state.editor.line ?? 0;
-    const dataSource = this.findDataSourceById(query.dataSourceId);
+  const handleExecute = async (query: QueryType): Promise<void> => {
+    const line = state.editor.line ?? 0;
+    const dataSource = findDataSourceById(query.dataSourceId);
     if (dataSource) {
       await Action.executeQuery({ query, dataSource, line });
     } else {
       alert("DataSource is missing");
     }
-  }
+  };
 
-  async handleCancel(query: QueryType): Promise<void> {
+  const handleCancel = async (query: QueryType): Promise<void> => {
     if (query.status === "working") {
       await Action.cancelQuery(query);
     }
-  }
+  };
 
-  async handleShareOnGist(query: QueryType): Promise<void> {
-    const chart = this.state.charts.find((chart) => chart.queryId === query.id);
-    const setting = this.state.setting.github;
-    const dataSource = this.state.dataSources.find((ds) => ds.id === query.dataSourceId);
+  const handleShareOnGist = async (query: QueryType): Promise<void> => {
+    const chart = state.charts.find((chart) => chart.queryId === query.id);
+    const setting = state.setting.github;
+    const dataSource = state.dataSources.find((ds) => ds.id === query.dataSourceId);
 
     if (!setting.token) {
       alert("Set your Github token");
@@ -67,12 +69,12 @@ class Query extends React.Component<unknown, QueryState> {
     } catch (err) {
       alert(err.message);
     }
-  }
+  };
 
-  async handleShareOnBdashServer(query: QueryType): Promise<void> {
-    const chart = this.state.charts.find((chart) => chart.queryId === query.id);
-    const setting = this.state.setting.bdashServer;
-    const dataSource = this.state.dataSources.find((ds) => ds.id === query.dataSourceId);
+  const handleShareOnBdashServer = async (query: QueryType): Promise<void> => {
+    const chart = state.charts.find((chart) => chart.queryId === query.id);
+    const setting = state.setting.bdashServer;
+    const dataSource = state.dataSources.find((ds) => ds.id === query.dataSourceId);
 
     if (!setting.token) {
       alert("Set your Bdash Server's access token");
@@ -107,23 +109,23 @@ class Query extends React.Component<unknown, QueryState> {
     } catch (err) {
       alert(err.message);
     }
-  }
+  };
 
-  async handleShowSharedQueryOnBdashServer(query: QueryType): Promise<void> {
-    return QuerySharing.showSharedQueryOnBdashServer({ query, setting: this.state.setting.bdashServer });
-  }
+  const handleShowSharedQueryOnBdashServer = async (query: QueryType): Promise<void> => {
+    await QuerySharing.showSharedQueryOnBdashServer({ query, setting: state.setting.bdashServer });
+  };
 
-  renderMain(): React.ReactNode {
-    const query = this.state.queries.find((query) => query.id === this.state.selectedQueryId);
+  const renderMain = (): React.ReactNode => {
+    const query = state.queries.find((query) => query.id === state.selectedQueryId);
     if (!query) return <div className="page-Query-main" />;
-    const dataSource = this.state.dataSources.find((dataSource) => dataSource.id === query.dataSourceId);
+    const dataSource = state.dataSources.find((dataSource) => dataSource.id === query.dataSourceId);
     const dataSourceDef = dataSource ? DataSource.get(dataSource.type) : null;
 
     return (
       <div className="page-Query-main">
         <QueryHeader
           query={query}
-          {...this.state}
+          {...state}
           onChangeTitle={(title): void => {
             Action.updateQuery(query.id, { title });
           }}
@@ -143,21 +145,21 @@ class Query extends React.Component<unknown, QueryState> {
             tables={dataSource?.tables ?? []}
             mimeType={dataSource?.mimeType ?? "text/x-sql"}
             formatType={dataSourceDef?.formatType ?? "sql"}
-            {...this.state}
+            {...state}
             onChangeQueryBody={(body, codeMirrorHistory): void => {
               Action.updateQuery(query.id, { body, codeMirrorHistory: codeMirrorHistory });
             }}
             onChangeCursorPosition={(line): void => Action.updateEditor({ line })}
             onExecute={(): void => {
-              this.handleExecute(query);
+              handleExecute(query);
             }}
             onCancel={(): void => {
-              this.handleCancel(query);
+              handleCancel(query);
             }}
           />
           <QueryResult
             query={query}
-            {...this.state}
+            {...state}
             onClickCopyAsJson={(): void => {
               QuerySharing.copyAsJson(query);
             }}
@@ -169,13 +171,13 @@ class Query extends React.Component<unknown, QueryState> {
             }}
             onClickCopyAsMarkdown={(): void => QuerySharing.copyAsMarkdown(query)}
             onClickShareOnGist={(): void => {
-              this.handleShareOnGist(query);
+              handleShareOnGist(query);
             }}
             onClickShareOnBdashServer={(): void => {
-              this.handleShareOnBdashServer(query);
+              handleShareOnBdashServer(query);
             }}
             onClickShowSharedQueryOnBdashServer={(): void => {
-              this.handleShowSharedQueryOnBdashServer(query);
+              handleShowSharedQueryOnBdashServer(query);
             }}
             onSelectTab={(name): void => {
               Action.selectResultTab(query, name);
@@ -185,26 +187,28 @@ class Query extends React.Component<unknown, QueryState> {
         </SplitterLayout>
       </div>
     );
-  }
+  };
 
-  override render(): React.ReactNode {
+  const render = () => {
     return (
       <div className="page-Query">
         <div className="page-Query-list">
           <QueryList
-            {...this.state}
+            {...state}
             onAddQuery={(): void => {
-              this.handleAddQuery();
+              handleAddQuery();
             }}
             onSelectQuery={Action.selectQuery}
             onDuplicateQuery={Action.duplicateQuery}
             onDeleteQuery={Action.deleteQuery}
           />
         </div>
-        {this.renderMain()}
+        {renderMain()}
       </div>
     );
-  }
-}
+  };
 
-export default Container.create<QueryState>(Query, store);
+  return render();
+};
+
+export default Query;
