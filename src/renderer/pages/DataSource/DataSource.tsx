@@ -1,63 +1,53 @@
 import React from "react";
-import { store, DataSourceState, DataSourceType } from "./DataSourceStore";
+import { store, DataSourceType } from "./DataSourceStore";
 import Action from "./DataSourceAction";
-import Container from "../../flux/Container";
+import { useFluxState } from "../../flux/useFluxState";
 import DataSourceList from "../../components/DataSourceList";
 import TableList from "../../components/TableList";
 import TableSummary from "../../components/TableSummary";
 import DataSourceForm from "../../components/DataSourceForm";
 
-class DataSource extends React.Component<unknown, DataSourceState> {
-  override componentDidMount(): void {
+const DataSource: React.FC = () => {
+  const state = useFluxState(store);
+
+  React.useEffect(() => {
     Action.initialize();
-  }
+  }, []);
 
-  find(id: number): DataSourceType | undefined {
-    return this.state.dataSources.find((d) => d.id === id);
-  }
+  const find = (id: number) => {
+    return state.dataSources.find((d) => d.id === id);
+  };
 
-  handleSave(dataSource: { id: number | null } & Pick<DataSourceType, "name" | "type" | "config">): void {
+  const handleSave = (dataSource: { id: number | null } & Pick<DataSourceType, "name" | "type" | "config">) => {
     if (dataSource.id !== null) {
       Action.updateDataSource({ ...dataSource, id: dataSource.id });
     } else {
       Action.createDataSource(dataSource);
     }
-  }
+  };
 
-  renderDataSourceForm(): React.ReactNode {
-    if (!this.state.showForm) return;
+  const renderDataSourceForm = () => {
+    if (!state.showForm) return;
 
-    return (
-      <DataSourceForm
-        dataSource={this.state.formValue}
-        onSave={this.handleSave.bind(this)}
-        onCancel={Action.hideForm}
-      />
-    );
-  }
+    return <DataSourceForm dataSource={state.formValue} onSave={handleSave} onCancel={Action.hideForm} />;
+  };
 
-  override render(): React.ReactNode {
-    const dataSource = this.find(this.state.selectedDataSourceId ?? -1);
-    const defaultDataSourceId = this.state.setting.defaultDataSourceId ?? this.state.dataSources[0]?.id;
+  const render = () => {
+    const dataSource = find(state.selectedDataSourceId ?? -1);
+    const defaultDataSourceId = state.setting.defaultDataSourceId ?? state.dataSources[0]?.id;
 
     return (
       <div className="page-DataSource">
         <div className="page-DataSource-list">
           <DataSourceList
-            {...this.state}
+            {...state}
             defaultDataSourceId={defaultDataSourceId}
-            onClickNew={(): void => Action.showForm()}
-            onSelect={(dataSource: DataSourceType): void => {
-              Action.selectDataSource(dataSource);
-            }}
-            onEdit={(dataSource: DataSourceType): void => Action.showForm(dataSource)}
-            onDelete={(id): void => {
-              Action.deleteDataSource(id);
-            }}
-            onReload={(dataSource: DataSourceType): void => Action.reloadTables(dataSource)}
-            changeDefaultDataSourceId={(defaultDataSourceId: number): void => {
-              Action.updateDefaultDataSourceId(defaultDataSourceId);
-            }}
+            onClickNew={Action.showForm}
+            onSelect={Action.selectDataSource}
+            onEdit={Action.showForm}
+            onDelete={Action.deleteDataSource}
+            onReload={Action.reloadTables}
+            changeDefaultDataSourceId={Action.updateDefaultDataSourceId}
           />
         </div>
         <div className="page-DataSource-tableList">
@@ -68,12 +58,14 @@ class DataSource extends React.Component<unknown, DataSourceState> {
           />
         </div>
         <div className="page-DataSource-tableSummary">
-          <TableSummary dataSource={dataSource} {...this.state} />
+          <TableSummary dataSource={dataSource} {...state} />
         </div>
-        {this.renderDataSourceForm()}
+        {renderDataSourceForm()}
       </div>
     );
-  }
-}
+  };
 
-export default Container.create<DataSourceState>(DataSource, store);
+  return render();
+};
+
+export default DataSource;
